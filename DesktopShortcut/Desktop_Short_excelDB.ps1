@@ -1,7 +1,6 @@
 $PackageName = "Desktop_Short_excelDB"
 $Version = "1"
 
-
 If ($PSVersionTable.PSVersion -ge [version]"5.0" -and (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full\').Release -ge 379893) {
 
     If ([Net.ServicePointManager]::SecurityProtocol -ne [Net.SecurityProtocolType]::SystemDefault) {
@@ -25,7 +24,6 @@ If ($PSVersionTable.PSVersion -ge [version]"5.0" -and (Get-ItemProperty 'HKLM:\S
         Try { Install-Module PSReadLine -Force -ErrorAction Stop }
         Catch { Exit }
     }
-
 }
 
 # Check if ImportExcel module is installed, if not, install it
@@ -72,7 +70,18 @@ foreach ($shortcut in $shortcuts) {
     $iconPath = Join-Path -Path $iconDirectory -ChildPath "$name.ico"
 
     # Download icon
-    Invoke-WebRequest -Uri $iconUrl -OutFile $iconPath
+    if (-not [string]::IsNullOrWhiteSpace($iconUrl)) {
+        try {
+            Invoke-WebRequest -Uri $iconUrl -OutFile $iconPath -ErrorAction Stop
+            Write-Host "Downloaded icon for $name"
+        } catch {
+            Write-Host "Failed to download icon for $name. Error: $_"
+            continue  # Skip creating this shortcut if icon download fails
+        }
+    } else {
+        Write-Host "No icon URL provided for $name. Skipping shortcut creation."
+        continue  # Skip creating this shortcut if no icon URL is provided
+    }
 
     # Check if an existing Web App shortcut with the same name exists
     if (Test-Path $shortcutPath) {
@@ -89,7 +98,7 @@ foreach ($shortcut in $shortcuts) {
     $shortcutFile.IconLocation = $iconPath
     $shortcutFile.Save()
 
-    Write-Host "Created/Updated shortcut for $name"
+    Write-Host "Created/Updated shortcut for $name with downloaded icon"
 }
 
 Write-Host "All shortcuts have been created/updated."
