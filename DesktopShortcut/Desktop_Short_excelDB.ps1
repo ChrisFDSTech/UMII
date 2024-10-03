@@ -1,6 +1,33 @@
 $PackageName = "Desktop_Short_excelDB"
 $Version = "1"
 
+
+If ($PSVersionTable.PSVersion -ge [version]"5.0" -and (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full\').Release -ge 379893) {
+
+    If ([Net.ServicePointManager]::SecurityProtocol -ne [Net.SecurityProtocolType]::SystemDefault) {
+         Try { [Net.ServicePointManager]::SecurityProtocol = @([Net.SecurityProtocolType]::Tls,[Net.SecurityProtocolType]::Tls11,[Net.SecurityProtocolType]::Tls12)}
+         Catch { Exit }
+    }
+
+    If ((Get-PackageProvider).Name -notcontains "NuGet") {
+        Try { Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force -ErrorAction Stop }
+        Catch { Exit }
+    }
+    $ArrPSRepos = Get-PSRepository
+    If ($ArrPSRepos.Name -notcontains "PSGallery") {
+        Try { Register-PSRepository -Default -InstallationPolicy Trusted -ErrorAction Stop }
+        Catch { Exit }
+    } ElseIf ($ArrPSRepos | ?{$_.Name -eq "PSGallery" -and $_.InstallationPolicy -ne "Trusted"}) {
+        Try { Set-PSRepository PSGallery -InstallationPolicy Trusted -ErrorAction Stop }
+        Catch { Exit }
+    }
+    If ((Get-Module -ListAvailable).Name -notcontains "PSReadLine") {
+        Try { Install-Module PSReadLine -Force -ErrorAction Stop }
+        Catch { Exit }
+    }
+
+}
+
 # Check if ImportExcel module is installed, if not, install it
 if (-not (Get-Module -ListAvailable -Name ImportExcel)) {
     Write-Host "ImportExcel module not found. Installing..."
