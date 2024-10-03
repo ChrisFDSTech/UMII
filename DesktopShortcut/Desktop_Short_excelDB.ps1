@@ -10,7 +10,11 @@ if (-not (Get-Module -ListAvailable -Name ImportExcel)) {
 # Import the ImportExcel module
 Import-Module ImportExcel
 
-$excelPath = "C:\Path\To\Your\shortcuts.xlsx"
+# Download the Excel file from GitHub
+$excelUrl = "https://github.com/ChrisFDSTech/UMII/raw/main/DesktopShortcut/DB/shortcuts.xlsx"
+$excelPath = Join-Path $env:TEMP "shortcuts.xlsx"
+Invoke-WebRequest -Uri $excelUrl -OutFile $excelPath
+
 $commonDesktop = [Environment]::GetFolderPath("CommonDesktopDirectory")
 $iconDirectory = Join-Path -Path $env:ProgramData -ChildPath "FDS\Icons"
 
@@ -32,10 +36,16 @@ $shortcuts = Import-Excel -Path $excelPath
 foreach ($shortcut in $shortcuts) {
     $name = $shortcut.Name
     $url = $shortcut.URL
-    $iconSourcePath = $shortcut.IconPath
+    $iconUrl = $shortcut.IconPath
+
+    # Replace %computername% with actual computer name
+    $name = $name -replace '%computername%', $env:COMPUTERNAME
 
     $shortcutPath = Join-Path -Path $commonDesktop -ChildPath "$name.lnk"
     $iconPath = Join-Path -Path $iconDirectory -ChildPath "$name.ico"
+
+    # Download icon
+    Invoke-WebRequest -Uri $iconUrl -OutFile $iconPath
 
     # Check if an existing Web App shortcut with the same name exists
     if (Test-Path $shortcutPath) {
@@ -44,9 +54,6 @@ foreach ($shortcut in $shortcuts) {
             Remove-Item $shortcutPath -Force
         }
     }
-
-    # Copy icon to FDS\Icons directory
-    Copy-Item -Path $iconSourcePath -Destination $iconPath -Force
 
     # Create or update the shortcut
     $shell = New-Object -ComObject WScript.Shell
@@ -59,3 +66,6 @@ foreach ($shortcut in $shortcuts) {
 }
 
 Write-Host "All shortcuts have been created/updated."
+
+# Clean up the downloaded Excel file
+Remove-Item $excelPath -Force
