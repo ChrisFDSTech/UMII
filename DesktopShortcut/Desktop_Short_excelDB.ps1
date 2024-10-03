@@ -67,28 +67,23 @@ foreach ($shortcut in $shortcuts) {
     $name = $name -replace '%computername%', $env:COMPUTERNAME
 
     $shortcutPath = Join-Path -Path $commonDesktop -ChildPath "$name.lnk"
-    $iconPath = Join-Path -Path $iconDirectory -ChildPath "$name.ico"
+    
+    # Extract original icon name from URL
+    $iconFileName = [System.IO.Path]::GetFileName($iconUrl)
+    $iconPath = Join-Path -Path $iconDirectory -ChildPath $iconFileName
 
-    # Download icon
+    # Download icon with original name
     if (-not [string]::IsNullOrWhiteSpace($iconUrl)) {
         try {
             Invoke-WebRequest -Uri $iconUrl -OutFile $iconPath -ErrorAction Stop
-            Write-Host "Downloaded icon for $name"
+            Write-Host "Downloaded icon: $iconFileName"
         } catch {
             Write-Host "Failed to download icon for $name. Error: $_"
-            continue  # Skip creating this shortcut if icon download fails
+            continue
         }
     } else {
         Write-Host "No icon URL provided for $name. Skipping shortcut creation."
-        continue  # Skip creating this shortcut if no icon URL is provided
-    }
-
-    # Check if an existing Web App shortcut with the same name exists
-    if (Test-Path $shortcutPath) {
-        if (Is-WebAppShortcut $shortcutPath) {
-            Write-Host "Replacing Web App shortcut for $name with regular URL shortcut"
-            Remove-Item $shortcutPath -Force
-        }
+        continue
     }
 
     # Create or update the shortcut
@@ -100,6 +95,7 @@ foreach ($shortcut in $shortcuts) {
 
     Write-Host "Created/Updated shortcut for $name with downloaded icon"
 }
+
 
 Write-Host "All shortcuts have been created/updated."
 
